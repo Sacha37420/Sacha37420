@@ -1,9 +1,14 @@
 <h1 align="center">Salut, moi c'est Sacha 👋</h1>
 
 <p align="center">
-  Je construis un <strong>lab self-hosted</strong> où onze applications Django&nbsp;+&nbsp;Angular partagent
-  une authentification centralisée (Keycloak&nbsp;+&nbsp;LDAP&nbsp;+&nbsp;Caddy),<br>
-  et quelques outils de bureau qui tournent en local.
+  Je construis un <strong>lab self-hosted que n'importe qui peut installer</strong>&nbsp;:
+  onze applications Django&nbsp;+&nbsp;Angular derrière une authentification centralisée<br>
+  (Keycloak&nbsp;+&nbsp;LDAP&nbsp;+&nbsp;Caddy), montées par <strong>un <code>git clone</code> et une commande</strong>.<br>
+  Et quelques outils de bureau qui tournent en local.
+</p>
+
+<p align="center">
+  <a href="https://github.com/Sacha37420/sso-lab"><b>👉 Installer le lab</b></a>
 </p>
 
 <p align="center">
@@ -26,9 +31,10 @@
 <h3>🌐 Applications web — lab SSO</h3>
 
 <p>
-Hébergées sur mon serveur, derrière Caddy et Keycloak.<br>
+Déployées ensemble par <a href="https://github.com/Sacha37420/sso-lab"><strong>sso-lab</strong></a>,
+derrière Caddy et Keycloak.<br>
 Chaque app est cloisonnée par groupe&nbsp;LDAP : être connecté ne donne accès à rien par défaut.<br>
-Infrastructure&nbsp;: <a href="https://github.com/Sacha37420/sso-lab"><strong>sso-lab</strong></a>
+<sub>Les groupes indiqués sont ceux du jeu d'exemple — tout se change dans <code>.keycloak-client-opts</code>.</sub>
 </p>
 
 <ul>
@@ -141,6 +147,36 @@ Pour <b>doc_writter</b>, installation directe depuis le dépôt&nbsp;:
 
 ---
 
+### 🚀 Installer le lab chez soi
+
+Prérequis : Docker Engine + plugin Compose, `git`, `curl`. Rien d'autre.
+
+```bash
+git clone --recurse-submodules https://github.com/Sacha37420/sso-lab.git
+cd sso-lab
+cp .env.example .env && cp bbox.env.example bbox.env
+nano bbox.env            # une seule valeur à renseigner : l'IP LAN de la machine
+bash scripts/reset_url.sh
+bash scripts/setup2.sh --yes
+```
+
+La dernière commande démarre l'infrastructure puis les onze applications en parallèle. À
+l'arrivée : Keycloak sur `:8080`, et chaque app sur son port. Tout tourne en HTTP sur le
+réseau local — **aucun nom de domaine ni exposition Internet nécessaire** pour découvrir le lab.
+
+Ensuite, à la carte :
+
+```bash
+bash scripts/setup2.sh mon-app --yes    # (re)déployer une seule app
+bash scripts/clean2.sh mon-app          # l'arrêter
+bash scripts/new-app.sh                 # scaffolder une app à soi
+```
+
+Exposition WAN, HTTPS automatique via Let's Encrypt et ouverture des ports du routeur sont
+des **étapes optionnelles**, documentées pas à pas dans le README de `sso-lab`.
+
+---
+
 ### 🧱 Comment le lab est construit
 
 - **Un dépôt parent, onze sous-modules** — chaque application vit dans son propre dépôt GitHub ; `sso-lab` ne référence qu'un commit précis.
@@ -148,6 +184,8 @@ Pour <b>doc_writter</b>, installation directe depuis le dépôt&nbsp;:
 - **Double verrou d'accès** — barrière Keycloak côté navigateur *et* vérification `azp` + claim `groups` côté API. Aucun des deux ne suffit seul.
 - **Tests de cloisonnement E2E** — un conteneur Playwright partagé vérifie que membre passe, non-membre refusé, même avec une session SSO active.
 - **Rotation des secrets à chaud** — clés Django, secrets Keycloak, mots de passe PostgreSQL et LDAP, sans jamais vider un volume.
+- **Aucun secret dans les dépôts** — chaque dossier fournit un `.env.example`, les secrets forts sont générés au premier démarrage.
+- **Reproductible de bout en bout** — hors nom de domaine et routeur, tout ce qui compose le lab est versionné et remontable depuis un `git clone`.
 
 ---
 
